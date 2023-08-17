@@ -1,8 +1,9 @@
-name: CI
+name: check and update chromedriver version
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 */4 * * *'
 
@@ -14,14 +15,16 @@ jobs:
     
     - uses: actions/checkout@v2
       name: Checkout source
-      
+    
+    # Parse the current chrome version from Google
     - id: get_chromedriver_version
       name: Get current ChromeDriver version
       run: |
-        chromeVersion=$(wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE -q -O -)
+        json_content=$(wget https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json -q -O -)
+        chromeVersion=$(echo "$json_content" | jq -r '.channels.Stable.version')
         echo $chromeVersion
         sed -i -E "s/R: (.*)/R: $chromeVersion/g" appveyor.yml
-        echo "##[set-output name=version;]$chromeVersion"
+        echo "version=$chromeVersion" >> "$GITHUB_OUTPUT"
         
     - uses: stefanzweifel/git-auto-commit-action@v4
       name: Commit to repository
